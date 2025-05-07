@@ -15,8 +15,6 @@ module.exports = {
           model: "users",
           key: "id",
         },
-        onUpdate: "CASCADE",
-        onDelete: "CASCADE",
       },
       groupId: {
         type: DataTypes.UUID,
@@ -25,8 +23,6 @@ module.exports = {
           model: "groups",
           key: "id",
         },
-        onUpdate: "CASCADE",
-        onDelete: "CASCADE",
       },
       data: {
         type: DataTypes.JSON,

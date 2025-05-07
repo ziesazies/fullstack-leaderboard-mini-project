@@ -1,46 +1,43 @@
-import { QueryInterface, DataTypes } from "sequelize";
+import { DataTypes, QueryInterface } from "sequelize";
 
 module.exports = {
   up: async (queryInterface: QueryInterface) => {
-    await queryInterface.createTable("groups", {
+    await queryInterface.createTable("users", {
       id: {
         type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
+        allowNull: false,
+        defaultValue: DataTypes.UUIDV4,
       },
-      parentId: {
-        type: DataTypes.UUID,
-        allowNull: true,
-        defaultValue: null,
-        references: {
-          model: "groups",
-          key: "id",
-        },
-        onUpdate: "CASCADE",
-        onDelete: "CASCADE",
-      },
-      code: {
+      fullname: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      title: {
+      username: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      data: {
-        type: DataTypes.JSON,
-        allowNull: true,
-        defaultValue: null,
-      },
-      tag: {
+      email: {
         type: DataTypes.STRING,
-        allowNull: true,
-        defaultValue: null,
+        allowNull: false,
+      },
+      phoneNumber: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      password: {
+        type: DataTypes.STRING,
+        allowNull: false,
       },
       active: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false,
+      },
+      data: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: null,
       },
       createdAt: {
         type: DataTypes.DATE,
@@ -56,6 +53,6 @@ module.exports = {
   },
 
   down: async (queryInterface: QueryInterface) => {
-    await queryInterface.dropTable("groups");
+    await queryInterface.dropTable("users");
   },
 };

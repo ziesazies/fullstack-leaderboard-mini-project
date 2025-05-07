@@ -13,44 +13,6 @@ module.exports = {
       userId: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-          model: "users",
-          key: "id",
-        },
-        onUpdate: "CASCADE",
-        onDelete: "CASCADE",
-      },
-      tryoutSectionId: {
-        type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-          model: "tryout_sections",
-          key: "id",
-        },
-        onUpdate: "CASCADE",
-        onDelete: "CASCADE",
-      },
-      score: {
-        type: DataTypes.FLOAT,
-        allowNull: true,
-        defaultValue: null,
-      },
-      duration: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        defaultValue: null,
-        comment: "Duration in milliseconds",
-      },
-      elapsedTime: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 0,
-        comment: "Elapsed time in milliseconds",
-      },
-      submittedAt: {
-        type: DataTypes.DATE,
-        allowNull: true,
-        defaultValue: null,
       },
       data: {
         type: DataTypes.JSON,

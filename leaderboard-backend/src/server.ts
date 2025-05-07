@@ -1,6 +1,6 @@
 import express from "express";
 import sequelize from "./config/database";
-import { User, Group, UserGroup, TryoutSection, Exam } from "./models";
+// import { User, Group, UserGroup, TryoutSection, Exam } from "./models";
 
 const app = express();
 app.use(express.json());

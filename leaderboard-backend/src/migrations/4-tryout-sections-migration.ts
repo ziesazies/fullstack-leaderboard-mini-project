@@ -13,7 +13,6 @@ module.exports = {
       code: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
       },
       description: {
         type: DataTypes.STRING,
