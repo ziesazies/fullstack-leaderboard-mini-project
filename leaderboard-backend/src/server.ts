@@ -1,13 +1,27 @@
 import express from "express";
 import sequelize from "./config/database";
 import app from "./app";
-// const app = express();
-app.use(express.json());
+import db from "./models";
 
-sequelize.sync({ force: true }).then(() => {
-  console.log("Database synced");
-});
+// Initialize models and associations first
+import "./models/index";
 
-app.listen(3000, () => {
-  console.log("Server is running on port 3000");
-});
+// No need to call express.json() again since it's already in app.ts
+// app.use(express.json());
+
+// Start the server
+const PORT = process.env.PORT || 3000;
+
+// Sync database without force: true in production
+sequelize
+  .sync()
+  .then(() => {
+    console.log("Database synced");
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to sync database:", err);
+  });
