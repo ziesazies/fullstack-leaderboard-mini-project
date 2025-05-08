@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import LeaderboardService from "../services/leaderboard.service.js";
+import LeaderboardService from "../services/leaderboard.service";
 
 const leaderboardService = new LeaderboardService();
 

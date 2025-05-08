@@ -1,5 +1,5 @@
 import express from "express";
-import router from "./routes/leaderboard.routes.js";
+import router from "./routes/leaderboard.routes";
 
 const app = express();
 

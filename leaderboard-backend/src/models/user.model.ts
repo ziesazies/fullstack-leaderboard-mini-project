@@ -1,6 +1,6 @@
 import { Model, DataTypes, Optional } from "sequelize";
 import { UserAttributes } from "../types/user.type";
-import sequelize from "../config/database.js";
+import sequelize from "../config/database";
 
 export type UserCreationAttributes = Optional<
   UserAttributes,

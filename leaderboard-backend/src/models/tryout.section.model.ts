@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from "sequelize";
-import sequelize from "../config/database.js";
+import sequelize from "../config/database";
 import { TryoutSectionAttributes } from "../types/tryout.sections.type";
 
 export type TryoutSectionCreationAttributes = Optional<

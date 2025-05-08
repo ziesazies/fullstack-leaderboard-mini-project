@@ -1,6 +1,6 @@
 import express from "express";
-import sequelize from "./config/database.js";
-import app from "./app.js";
+import sequelize from "./config/database";
+import app from "./app";
 // const app = express();
 app.use(express.json());
 

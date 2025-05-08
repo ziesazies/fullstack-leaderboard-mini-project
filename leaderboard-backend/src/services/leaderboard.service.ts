@@ -1,8 +1,8 @@
 import { Op, Sequelize } from "sequelize";
-import Exam from "../models/exam.model.js";
-import User from "../models/user.model.js";
-import UserGroup from "../models/user.group.model.js";
-import sequelize from "../config/database.js";
+import Exam from "../models/exam.model";
+import User from "../models/user.model";
+import UserGroup from "../models/user.group.model";
+import sequelize from "../config/database";
 
 export class LeaderboardService {
   /**

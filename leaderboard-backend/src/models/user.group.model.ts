@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from "sequelize";
-import sequelize from "../config/database.js";
+import sequelize from "../config/database";
 import { UserGroupAttributes } from "../types/user.group.type";
 
 export type UserGroupCreationAttributes = Optional<
