@@ -17,13 +17,17 @@ export type TryoutSectionCreationAttributes = Optional<
 class TryoutSection extends Model<
   TryoutSectionAttributes,
   TryoutSectionCreationAttributes
-> {}
+> {
+  // static associate(models: any) {
+  //   // Add association if needed
+  //   // For example, a tryout section could have many exams
+  // }
+}
 
 TryoutSection.init(
   {
     id: {
       type: DataTypes.CHAR(36),
-      // defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
     code: {
@@ -74,7 +78,7 @@ TryoutSection.init(
     sequelize,
     modelName: "TryoutSection",
     tableName: "tryout_sections",
-    timestamps: false,
+    timestamps: true,
   }
 );
 

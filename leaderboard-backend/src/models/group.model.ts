@@ -16,16 +16,18 @@ class Group extends Model<GroupAttributes, GroupCreationAttributes> {
       onDelete: "CASCADE",
       onUpdate: "CASCADE",
     });
+
     Group.hasMany(models.Group, {
       foreignKey: "parentId",
-      as: "children",
+      as: "childGroups", // Changed alias
       onDelete: "CASCADE",
       onUpdate: "CASCADE",
     });
+
     Group.belongsToMany(models.Group, {
       through: models.UserGroup,
       foreignKey: "groupId",
-      as: "children",
+      as: "groupMembers", // Changed alias
       onDelete: "CASCADE",
       onUpdate: "CASCADE",
     });
