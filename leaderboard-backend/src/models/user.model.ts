@@ -1,6 +1,6 @@
 import { Model, DataTypes, Optional } from "sequelize";
 import { UserAttributes } from "../types/user.type";
-import sequelize from "../config/database";
+import sequelize from "../config/database.js";
 
 export type UserCreationAttributes = Optional<
   UserAttributes,
@@ -28,10 +28,10 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 User.init(
   {
     id: {
-      type: DataTypes.UUID,
+      type: DataTypes.CHAR(36),
       primaryKey: true,
       allowNull: false,
-      defaultValue: DataTypes.UUIDV4,
+      // defaultValue: DataTypes.UUIDV4,
     },
     fullname: {
       type: DataTypes.STRING,

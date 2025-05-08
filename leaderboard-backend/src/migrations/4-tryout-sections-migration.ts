@@ -6,7 +6,7 @@ module.exports = {
   up: async (queryInterface: QueryInterface) => {
     await queryInterface.createTable("tryout_sections", {
       id: {
-        type: DataTypes.UUID,
+        type: DataTypes.CHAR(36),
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
       },

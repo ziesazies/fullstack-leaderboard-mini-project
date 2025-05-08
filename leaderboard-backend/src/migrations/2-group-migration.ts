@@ -4,12 +4,12 @@ module.exports = {
   up: async (queryInterface: QueryInterface) => {
     await queryInterface.createTable("groups", {
       id: {
-        type: DataTypes.UUID,
+        type: DataTypes.CHAR(36),
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
       },
       parentId: {
-        type: DataTypes.UUID,
+        type: DataTypes.CHAR(36),
         allowNull: true,
         defaultValue: null,
       },

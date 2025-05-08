@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from "sequelize";
-import sequelize from "../config/database";
+import sequelize from "../config/database.js";
 import { TryoutSectionAttributes } from "../types/tryout.sections.type";
 
 export type TryoutSectionCreationAttributes = Optional<
@@ -22,8 +22,8 @@ class TryoutSection extends Model<
 TryoutSection.init(
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.CHAR(36),
+      // defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
     code: {

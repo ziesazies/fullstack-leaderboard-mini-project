@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from "sequelize";
-import sequelize from "../config/database";
+import sequelize from "../config/database.js";
 import { UserGroupAttributes } from "../types/user.group.type";
 
 export type UserGroupCreationAttributes = Optional<
@@ -11,6 +11,7 @@ class UserGroup extends Model<
   UserGroupAttributes,
   UserGroupCreationAttributes
 > {
+  [x: string]: any;
   static associate(models: any) {
     UserGroup.belongsTo(models.User, {
       foreignKey: "userId",
@@ -30,12 +31,12 @@ class UserGroup extends Model<
 UserGroup.init(
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.CHAR(36),
+      // defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
     userId: {
-      type: DataTypes.UUID,
+      type: DataTypes.CHAR(36),
       allowNull: false,
       references: {
         model: "users",
@@ -43,7 +44,7 @@ UserGroup.init(
       },
     },
     groupId: {
-      type: DataTypes.UUID,
+      type: DataTypes.CHAR(36),
       allowNull: false,
       references: {
         model: "groups",

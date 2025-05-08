@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from "sequelize";
-import sequelize from "../config/database";
+import sequelize from "../config/database.js";
 import { GroupAttributes } from "../types/group.type";
 
 export type GroupCreationAttributes = Optional<
@@ -35,12 +35,12 @@ class Group extends Model<GroupAttributes, GroupCreationAttributes> {
 Group.init(
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.CHAR(36),
+      // defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
     parentId: {
-      type: DataTypes.UUID,
+      type: DataTypes.CHAR(36),
       allowNull: true,
       defaultValue: null,
     },

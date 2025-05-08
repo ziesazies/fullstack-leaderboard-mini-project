@@ -4,7 +4,7 @@ module.exports = {
   up: async (queryInterface: QueryInterface) => {
     await queryInterface.createTable("users", {
       id: {
-        type: DataTypes.UUID,
+        type: DataTypes.CHAR(36),
         primaryKey: true,
         allowNull: false,
         defaultValue: DataTypes.UUIDV4,

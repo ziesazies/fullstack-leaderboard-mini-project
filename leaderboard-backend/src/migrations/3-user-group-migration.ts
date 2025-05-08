@@ -4,12 +4,12 @@ module.exports = {
   up: async (queryInterface: QueryInterface) => {
     await queryInterface.createTable("users_groups", {
       id: {
-        type: DataTypes.UUID,
+        type: DataTypes.CHAR(36),
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
       },
       userId: {
-        type: DataTypes.UUID,
+        type: DataTypes.CHAR(36),
         allowNull: false,
         references: {
           model: "users",
@@ -17,7 +17,7 @@ module.exports = {
         },
       },
       groupId: {
-        type: DataTypes.UUID,
+        type: DataTypes.CHAR(36),
         allowNull: false,
         references: {
           model: "groups",
@@ -39,13 +39,6 @@ module.exports = {
         allowNull: false,
         defaultValue: DataTypes.NOW,
       },
-    });
-
-    // Add composite unique constraint
-    await queryInterface.addConstraint("users_groups", {
-      fields: ["userId", "groupId"],
-      type: "unique",
-      name: "users_groups_user_group_unique",
     });
   },
 

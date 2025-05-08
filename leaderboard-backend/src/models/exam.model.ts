@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from "sequelize";
-import sequelize from "../config/database";
+import sequelize from "../config/database.js";
 import { ExamAttributes } from "../types/exam.type";
 
 export type ExamCreationAttributes = Optional<
@@ -21,13 +21,17 @@ class Exam extends Model<ExamAttributes, ExamCreationAttributes> {
 Exam.init(
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.CHAR(36),
+      // defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
     userId: {
-      type: DataTypes.UUID,
+      type: DataTypes.CHAR(36),
       allowNull: false,
+      references: {
+        model: "users",
+        key: "id",
+      },
     },
     data: {
       type: DataTypes.JSON,
