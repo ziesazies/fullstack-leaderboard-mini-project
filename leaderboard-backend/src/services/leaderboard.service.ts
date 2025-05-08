@@ -1,4 +1,4 @@
-import { Op, Sequelize } from "sequelize";
+import { Op, Sequelize, QueryTypes } from "sequelize";
 import Exam from "../models/exam.model";
 import User from "../models/user.model";
 import UserGroup from "../models/user.group.model";
@@ -49,67 +49,61 @@ export class LeaderboardService {
    * AGAT - All User All Group All Tryout
    * Lists top users from all groups across all tryouts with average scores
    */
-  // async getAllGroupAllTryoutAllUser() {
-  //   try {
-  //     const exams = await Exam.findAll({
-  //       where: {
-  //         active: true,
-  //         [Op.and]: Sequelize.where(
-  //           Sequelize.literal("data->>'status'"),
-  //           "=",
-  //           "submitted"
-  //         ),
-  //       },
-  //       include: [
-  //         {
-  //           model: User,
-  //           as: "user",
-  //           attributes: ["id", "fullname", "username", "email"],
-  //           required: true,
-  //         },
-  //       ],
-  //       attributes: [
-  //         "userId",
-  //         [
-  //           Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.scores"),
-  //           "scores",
-  //         ],
-  //         [
-  //           Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.duration"),
-  //           "duration",
-  //         ],
-  //         [
-  //           Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.startTime"),
-  //           "startTime",
-  //         ],
-  //         [
-  //           Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.endTime"),
-  //           "endTime",
-  //         ],
-  //       ],
-  //       raw: true,
-  //     });
-
-  //     return this.processLeaderboard(exams);
-  //   } catch (error: any) {
-  //     console.error("Error in getAllGroupAllTryoutAllUser:", error);
-  //     throw new Error(`Failed to get leaderboard: ${error.message}`);
-  //   }
-  // }
   async getAllGroupAllTryoutAllUser() {
+    try {
+      // Use raw SQL to avoid JSON_EXTRACT syntax issues
+      const exams = (await sequelize.query(
+        `
+        SELECT 
+          e.userId, 
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.scores')) AS scores,
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.duration')) AS duration,
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.startTime')) AS startTime,
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.endTime')) AS endTime,
+          u.id AS 'user.id',
+          u.fullname AS 'user.fullname',
+          u.username AS 'user.username',
+          u.email AS 'user.email'
+        FROM exams e
+        JOIN users u ON e.userId = u.id
+        WHERE JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.status')) = 'submitted'
+        AND e.active = 1
+      `,
+        { type: QueryTypes.SELECT }
+      )) as any[];
+
+      return this.processLeaderboard(exams);
+    } catch (error: any) {
+      console.error("Error in getAllGroupAllTryoutAllUser:", error);
+      throw new Error(`Failed to get leaderboard: ${error.message}`);
+    }
+  }
+
+  async getAllGroupAllUserSpecificTryout(tryoutId: string) {
     try {
       const exams = await Exam.findAll({
         where: {
           active: true,
-          [Op.and]: Sequelize.where(
-            Sequelize.fn(
-              "JSON_EXTRACT",
-              Sequelize.col("Exam.data"),
-              "$.status"
+          [Op.and]: [
+            Sequelize.where(
+              Sequelize.fn(
+                "JSON_EXTRACT",
+                Sequelize.col("Exam.data"),
+                "$.status"
+              ),
+              "=",
+              "submitted"
             ),
-            "=",
-            "submitted"
-          ),
+            Sequelize.where(
+              Sequelize.fn(
+                "JSON_EXTRACT",
+                Sequelize.col("Exam.data"),
+                "$.tryoutSectionId"
+              ),
+              "=",
+              tryoutId
+            ),
+          ],
         },
         include: [
           {
@@ -159,61 +153,6 @@ export class LeaderboardService {
 
       return this.processLeaderboard(exams);
     } catch (error: any) {
-      console.error("Error in getAllGroupAllTryoutAllUser:", error);
-      throw new Error(`Failed to get leaderboard: ${error.message}`);
-    }
-  }
-
-  async getAllGroupAllUserSpecificTryout(tryoutId: string) {
-    try {
-      const exams = await Exam.findAll({
-        where: {
-          active: true,
-          [Op.and]: [
-            Sequelize.where(
-              Sequelize.literal("data->>'status'"),
-              "=",
-              "submitted"
-            ),
-            Sequelize.where(
-              Sequelize.literal("data->>'tryoutSectionId'"),
-              "=",
-              tryoutId
-            ),
-          ],
-        },
-        include: [
-          {
-            model: User,
-            as: "user",
-            attributes: ["id", "fullname", "username", "email"],
-            required: true,
-          },
-        ],
-        attributes: [
-          "userId",
-          [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.scores"),
-            "scores",
-          ],
-          [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.duration"),
-            "duration",
-          ],
-          [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.startTime"),
-            "startTime",
-          ],
-          [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.endTime"),
-            "endTime",
-          ],
-        ],
-        raw: true,
-      });
-
-      return this.processLeaderboard(exams);
-    } catch (error: any) {
       console.error("Error in getAllGroupAllUserSpecificTryout:", error);
       throw new Error(`Failed to get leaderboard: ${error.message}`);
     }
@@ -237,7 +176,11 @@ export class LeaderboardService {
         where: {
           active: true,
           [Op.and]: Sequelize.where(
-            Sequelize.literal("data->>'status'"),
+            Sequelize.fn(
+              "JSON_EXTRACT",
+              Sequelize.col("Exam.data"),
+              "$.status"
+            ),
             "=",
             "submitted"
           ),
@@ -254,19 +197,35 @@ export class LeaderboardService {
         attributes: [
           "userId",
           [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.scores"),
+            Sequelize.fn(
+              "JSON_EXTRACT",
+              Sequelize.col("Exam.data"),
+              "$.scores"
+            ),
             "scores",
           ],
           [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.duration"),
+            Sequelize.fn(
+              "JSON_EXTRACT",
+              Sequelize.col("Exam.data"),
+              "$.duration"
+            ),
             "duration",
           ],
           [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.startTime"),
+            Sequelize.fn(
+              "JSON_EXTRACT",
+              Sequelize.col("Exam.data"),
+              "$.startTime"
+            ),
             "startTime",
           ],
           [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.endTime"),
+            Sequelize.fn(
+              "JSON_EXTRACT",
+              Sequelize.col("Exam.data"),
+              "$.endTime"
+            ),
             "endTime",
           ],
         ],
@@ -299,12 +258,20 @@ export class LeaderboardService {
           active: true,
           [Op.and]: [
             Sequelize.where(
-              Sequelize.literal("data->>'status'"),
+              Sequelize.fn(
+                "JSON_EXTRACT",
+                Sequelize.col("Exam.data"),
+                "$.status"
+              ),
               "=",
               "submitted"
             ),
             Sequelize.where(
-              Sequelize.literal("data->>'tryoutSectionId'"),
+              Sequelize.fn(
+                "JSON_EXTRACT",
+                Sequelize.col("Exam.data"),
+                "$.tryoutSectionId"
+              ),
               "=",
               tryoutId
             ),
@@ -322,19 +289,35 @@ export class LeaderboardService {
         attributes: [
           "userId",
           [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.scores"),
+            Sequelize.fn(
+              "JSON_EXTRACT",
+              Sequelize.col("Exam.data"),
+              "$.scores"
+            ),
             "scores",
           ],
           [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.duration"),
+            Sequelize.fn(
+              "JSON_EXTRACT",
+              Sequelize.col("Exam.data"),
+              "$.duration"
+            ),
             "duration",
           ],
           [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.startTime"),
+            Sequelize.fn(
+              "JSON_EXTRACT",
+              Sequelize.col("Exam.data"),
+              "$.startTime"
+            ),
             "startTime",
           ],
           [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.endTime"),
+            Sequelize.fn(
+              "JSON_EXTRACT",
+              Sequelize.col("Exam.data"),
+              "$.endTime"
+            ),
             "endTime",
           ],
         ],
