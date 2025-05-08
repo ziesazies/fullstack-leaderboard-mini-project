@@ -1,15 +1,19 @@
 import { Op, Sequelize, QueryTypes } from "sequelize";
-import Exam from "../models/exam.model";
-import User from "../models/user.model";
-import UserGroup from "../models/user.group.model";
-import sequelize from "../config/database";
+import Exam from "../models/exam.model"; // Meskipun tidak digunakan langsung untuk query, bisa tetap dipertahankan untuk referensi model
+import User from "../models/user.model"; // Sama seperti Exam
+import UserGroup from "../models/user.group.model"; // Sama seperti Exam, atau jika ada operasi lain yang masih menggunakannya
+import sequelize from "../config/database"; // Pastikan path ini benar
 
 export class LeaderboardService {
   /**
    * Calculate time score based on elapsed time and duration
    * Score = -(elapsed time) / (duration)
    */
-  private calculateTimeScore(elapsedTime: number, duration: number) {
+  private calculateTimeScore(elapsedTime: number, duration: number): number {
+    if (duration === 0) {
+      // Hindari pembagian dengan nol
+      return 0;
+    }
     return -(elapsedTime / duration);
   }
 
@@ -51,9 +55,8 @@ export class LeaderboardService {
    */
   async getAllGroupAllTryoutAllUser() {
     try {
-      // Use raw SQL to avoid JSON_EXTRACT syntax issues
-      const exams = (await sequelize.query(
-        `
+      // Kueri ini sudah benar dan menggunakan raw SQL
+      const query = `
         SELECT 
           e.userId, 
           JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.scores')) AS scores,
@@ -68,9 +71,10 @@ export class LeaderboardService {
         JOIN users u ON e.userId = u.id
         WHERE JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.status')) = 'submitted'
         AND e.active = 1
-      `,
-        { type: QueryTypes.SELECT }
-      )) as any[];
+      `;
+      const exams = (await sequelize.query(query, {
+        type: QueryTypes.SELECT,
+      })) as any[];
 
       return this.processLeaderboard(exams);
     } catch (error: any) {
@@ -79,77 +83,33 @@ export class LeaderboardService {
     }
   }
 
+  /**
+   * AGST - All Group, All User, Specific Tryout
+   * Lists top users from all groups for a specific tryout with average scores
+   */
   async getAllGroupAllUserSpecificTryout(tryoutId: string) {
     try {
-      const exams = await Exam.findAll({
-        where: {
-          active: true,
-          [Op.and]: [
-            Sequelize.where(
-              Sequelize.fn(
-                "JSON_EXTRACT",
-                Sequelize.col("Exam.data"),
-                "$.status"
-              ),
-              "=",
-              "submitted"
-            ),
-            Sequelize.where(
-              Sequelize.fn(
-                "JSON_EXTRACT",
-                Sequelize.col("Exam.data"),
-                "$.tryoutSectionId"
-              ),
-              "=",
-              tryoutId
-            ),
-          ],
-        },
-        include: [
-          {
-            model: User,
-            as: "user",
-            attributes: ["id", "fullname", "username", "email"],
-            required: true,
-          },
-        ],
-        attributes: [
-          "userId",
-          [
-            Sequelize.fn(
-              "JSON_EXTRACT",
-              Sequelize.col("Exam.data"),
-              "$.scores"
-            ),
-            "scores",
-          ],
-          [
-            Sequelize.fn(
-              "JSON_EXTRACT",
-              Sequelize.col("Exam.data"),
-              "$.duration"
-            ),
-            "duration",
-          ],
-          [
-            Sequelize.fn(
-              "JSON_EXTRACT",
-              Sequelize.col("Exam.data"),
-              "$.startTime"
-            ),
-            "startTime",
-          ],
-          [
-            Sequelize.fn(
-              "JSON_EXTRACT",
-              Sequelize.col("Exam.data"),
-              "$.endTime"
-            ),
-            "endTime",
-          ],
-        ],
-        raw: true,
-      });
+      const query = `
+        SELECT 
+          e.userId, 
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.scores')) AS scores,
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.duration')) AS duration,
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.startTime')) AS startTime,
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.endTime')) AS endTime,
+          u.id AS 'user.id',
+          u.fullname AS 'user.fullname',
+          u.username AS 'user.username',
+          u.email AS 'user.email'
+        FROM exams e
+        JOIN users u ON e.userId = u.id
+        WHERE JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.status')) = 'submitted'
+        AND JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.tryoutSectionId')) = :tryoutId
+        AND e.active = 1
+      `;
+      const exams = (await sequelize.query(query, {
+        replacements: { tryoutId: tryoutId },
+        type: QueryTypes.SELECT,
+      })) as any[];
 
       return this.processLeaderboard(exams);
     } catch (error: any) {
@@ -158,79 +118,39 @@ export class LeaderboardService {
     }
   }
 
+  /**
+   * SGAT - Specific Group, All User, All Tryout
+   * Lists top users from a specific group across all tryouts with average scores
+   */
   async specificGroupAllUserAllTryout(groupId: string) {
     try {
-      const userGroups = await UserGroup.findAll({
-        where: { groupId },
-        attributes: ["userId"],
-        raw: true,
-      });
+      const query = `
+        SELECT 
+          e.userId, 
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.scores')) AS scores,
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.duration')) AS duration,
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.startTime')) AS startTime,
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.endTime')) AS endTime,
+          u.id AS 'user.id',
+          u.fullname AS 'user.fullname',
+          u.username AS 'user.username',
+          u.email AS 'user.email'
+        FROM exams e
+        JOIN users u ON e.userId = u.id
+        JOIN users_groups ug ON u.id = ug.userId 
+        WHERE JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.status')) = 'submitted'
+        AND e.active = 1
+        AND ug.groupId = :groupId 
+      `;
+      // Catatan: 'user_groups' adalah nama tabel yang diasumsikan untuk model UserGroup.
+      // Sesuaikan jika nama tabel di database Anda berbeda.
+      // Berdasarkan pengecekan model Anda, nama tabelnya adalah "user_groups".
+      // groupId di user_groups juga diasumsikan bernama 'groupId'. Sesuaikan jika berbeda.
 
-      if (!userGroups || userGroups.length === 0) {
-        return []; // No users in this group
-      }
-
-      const userIds = userGroups.map((ug: any) => ug.userId);
-
-      const exams = await Exam.findAll({
-        where: {
-          active: true,
-          [Op.and]: Sequelize.where(
-            Sequelize.fn(
-              "JSON_EXTRACT",
-              Sequelize.col("Exam.data"),
-              "$.status"
-            ),
-            "=",
-            "submitted"
-          ),
-          userId: { [Op.in]: userIds },
-        },
-        include: [
-          {
-            model: User,
-            as: "user",
-            attributes: ["id", "fullname", "username", "email"],
-            required: true,
-          },
-        ],
-        attributes: [
-          "userId",
-          [
-            Sequelize.fn(
-              "JSON_EXTRACT",
-              Sequelize.col("Exam.data"),
-              "$.scores"
-            ),
-            "scores",
-          ],
-          [
-            Sequelize.fn(
-              "JSON_EXTRACT",
-              Sequelize.col("Exam.data"),
-              "$.duration"
-            ),
-            "duration",
-          ],
-          [
-            Sequelize.fn(
-              "JSON_EXTRACT",
-              Sequelize.col("Exam.data"),
-              "$.startTime"
-            ),
-            "startTime",
-          ],
-          [
-            Sequelize.fn(
-              "JSON_EXTRACT",
-              Sequelize.col("Exam.data"),
-              "$.endTime"
-            ),
-            "endTime",
-          ],
-        ],
-        raw: true,
-      });
+      const exams = (await sequelize.query(query, {
+        replacements: { groupId: groupId },
+        type: QueryTypes.SELECT,
+      })) as any[];
 
       return this.processLeaderboard(exams);
     } catch (error: any) {
@@ -239,90 +159,40 @@ export class LeaderboardService {
     }
   }
 
+  /**
+   * SGST - Specific Group, All User, Specific Tryout
+   * Lists top users from a specific group for a specific tryout with average scores
+   */
   async specificGroupAllUserSpecificTryout(groupId: string, tryoutId: string) {
     try {
-      const userGroups = await UserGroup.findAll({
-        where: { groupId },
-        attributes: ["userId"],
-        raw: true,
-      });
+      const query = `
+        SELECT 
+          e.userId, 
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.scores')) AS scores,
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.duration')) AS duration,
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.startTime')) AS startTime,
+          JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.endTime')) AS endTime,
+          u.id AS 'user.id',
+          u.fullname AS 'user.fullname',
+          u.username AS 'user.username',
+          u.email AS 'user.email'
+        FROM exams e
+        JOIN users u ON e.userId = u.id
+        JOIN users_groups ug ON u.id = ug.userId
+        WHERE JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.status')) = 'submitted'
+        AND JSON_UNQUOTE(JSON_EXTRACT(e.data, '$.tryoutSectionId')) = :tryoutId
+        AND e.active = 1
+        AND ug.groupId = :groupId
+      `;
+      // Catatan: 'user_groups' adalah nama tabel yang diasumsikan untuk model UserGroup.
+      // Sesuaikan jika nama tabel di database Anda berbeda.
+      // Berdasarkan pengecekan model Anda, nama tabelnya adalah "user_groups".
+      // groupId di user_groups juga diasumsikan bernama 'groupId'. Sesuaikan jika berbeda.
 
-      if (!userGroups || userGroups.length === 0) {
-        return []; // No users in this group
-      }
-
-      const userIds = userGroups.map((ug: any) => ug.userId);
-
-      const exams = await Exam.findAll({
-        where: {
-          active: true,
-          [Op.and]: [
-            Sequelize.where(
-              Sequelize.fn(
-                "JSON_EXTRACT",
-                Sequelize.col("Exam.data"),
-                "$.status"
-              ),
-              "=",
-              "submitted"
-            ),
-            Sequelize.where(
-              Sequelize.fn(
-                "JSON_EXTRACT",
-                Sequelize.col("Exam.data"),
-                "$.tryoutSectionId"
-              ),
-              "=",
-              tryoutId
-            ),
-          ],
-          userId: { [Op.in]: userIds },
-        },
-        include: [
-          {
-            model: User,
-            as: "user",
-            attributes: ["id", "fullname", "username", "email"],
-            required: true,
-          },
-        ],
-        attributes: [
-          "userId",
-          [
-            Sequelize.fn(
-              "JSON_EXTRACT",
-              Sequelize.col("Exam.data"),
-              "$.scores"
-            ),
-            "scores",
-          ],
-          [
-            Sequelize.fn(
-              "JSON_EXTRACT",
-              Sequelize.col("Exam.data"),
-              "$.duration"
-            ),
-            "duration",
-          ],
-          [
-            Sequelize.fn(
-              "JSON_EXTRACT",
-              Sequelize.col("Exam.data"),
-              "$.startTime"
-            ),
-            "startTime",
-          ],
-          [
-            Sequelize.fn(
-              "JSON_EXTRACT",
-              Sequelize.col("Exam.data"),
-              "$.endTime"
-            ),
-            "endTime",
-          ],
-        ],
-        raw: true,
-      });
+      const exams = (await sequelize.query(query, {
+        replacements: { groupId: groupId, tryoutId: tryoutId },
+        type: QueryTypes.SELECT,
+      })) as any[];
 
       return this.processLeaderboard(exams);
     } catch (error: any) {
@@ -331,7 +201,13 @@ export class LeaderboardService {
     }
   }
 
+  /**
+   * ST - Specific Tryout, All User
+   * This function calls getAllGroupAllUserSpecificTryout, which is already refactored.
+   */
   async specificTryoutAllUser(tryoutId: string) {
+    // Fungsi ini sudah memanggil fungsi lain yang telah direfactor,
+    // jadi tidak perlu perubahan langsung di sini kecuali jika logikanya ingin diubah.
     return this.getAllGroupAllUserSpecificTryout(tryoutId);
   }
 
@@ -340,25 +216,49 @@ export class LeaderboardService {
       return [];
     }
 
-    const userScoresMap: Record<string, { user: any; scores: number[] }> = {};
+    const userScoresMap: Record<
+      string,
+      {
+        user: any;
+        scores: number[];
+        totalDuration: number;
+        totalElapsed: number;
+        examCount: number;
+      }
+    > = {};
 
     for (const exam of exams) {
       const userId = exam.userId;
 
+      // Pastikan user data ada, terutama user.fullname yang digunakan untuk membuat objek user
       if (!userId || !exam["user.fullname"]) {
         console.warn("Skipping exam without valid user data:", exam);
         continue;
       }
 
       try {
-        const score = parseFloat(exam.scores || "0");
-        const duration = parseInt(exam.duration || "0");
-        const start = new Date(exam.startTime || new Date()).getTime();
-        const end = new Date(exam.endTime || new Date()).getTime();
-        const elapsed = end - start;
+        // Parsing dengan fallback ke 0 atau nilai default jika null/undefined/kosong
+        const scoreString = exam.scores || "0";
+        const durationString = exam.duration || "0";
+        const startTimeString = exam.startTime; // Biarkan null jika memang null
+        const endTimeString = exam.endTime; // Biarkan null jika memang null
 
-        const timeScore = this.calculateTimeScore(elapsed, duration);
-        const finalScore = score + timeScore;
+        const score = parseFloat(scoreString);
+        const duration = parseInt(durationString, 10);
+
+        let elapsed = 0;
+        // Hanya hitung elapsed time jika startTime dan endTime valid
+        if (startTimeString && endTimeString) {
+          const start = new Date(startTimeString).getTime();
+          const end = new Date(endTimeString).getTime();
+          if (!isNaN(start) && !isNaN(end)) {
+            elapsed = end - start;
+          } else {
+            console.warn(`Invalid startTime or endTime for exam:`, exam);
+          }
+        } else {
+          console.warn(`Missing startTime or endTime for exam:`, exam);
+        }
 
         if (!userScoresMap[userId]) {
           userScoresMap[userId] = {
@@ -369,23 +269,45 @@ export class LeaderboardService {
               email: exam["user.email"],
             },
             scores: [],
+            totalDuration: 0,
+            totalElapsed: 0,
+            examCount: 0,
           };
         }
 
-        userScoresMap[userId].scores.push(finalScore);
+        userScoresMap[userId].scores.push(score); // Simpan skor mentah tryout
+        userScoresMap[userId].totalDuration += duration;
+        userScoresMap[userId].totalElapsed += elapsed;
+        userScoresMap[userId].examCount += 1;
       } catch (err) {
-        console.error("Error processing exam for leaderboard:", err, exam);
-        // Skip this exam but continue processing others
+        console.error(
+          "Error processing individual exam data for leaderboard:",
+          err,
+          exam
+        );
+        // Lewati ujian ini tetapi lanjutkan memproses yang lain
       }
     }
 
     return Object.values(userScoresMap)
-      .map(({ user, scores }) => ({
-        ...user,
-        averageScore: Number(
-          (scores.reduce((acc, s) => acc + s, 0) / scores.length).toFixed(2)
-        ),
-      }))
+      .map(({ user, scores, totalDuration, totalElapsed, examCount }) => {
+        // Hitung rata-rata skor dari semua tryout yang diikuti user
+        const averageRawScore =
+          examCount > 0 ? scores.reduce((acc, s) => acc + s, 0) / examCount : 0;
+
+        // Hitung timeScore berdasarkan total waktu dan total durasi semua tryout
+        const timeScore = this.calculateTimeScore(totalElapsed, totalDuration);
+
+        const finalAverageScore = averageRawScore + timeScore;
+
+        return {
+          ...user,
+          averageScore: Number(finalAverageScore.toFixed(2)), // Skor akhir yang sudah termasuk timeScore
+          // Anda bisa tambahkan detail lain jika perlu, misalnya:
+          // totalTryouts: examCount,
+          // rawAverage: Number(averageRawScore.toFixed(2))
+        };
+      })
       .sort((a, b) => b.averageScore - a.averageScore);
   }
 }
