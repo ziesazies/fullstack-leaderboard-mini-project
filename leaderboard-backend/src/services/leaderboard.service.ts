@@ -49,13 +49,64 @@ export class LeaderboardService {
    * AGAT - All User All Group All Tryout
    * Lists top users from all groups across all tryouts with average scores
    */
+  // async getAllGroupAllTryoutAllUser() {
+  //   try {
+  //     const exams = await Exam.findAll({
+  //       where: {
+  //         active: true,
+  //         [Op.and]: Sequelize.where(
+  //           Sequelize.literal("data->>'status'"),
+  //           "=",
+  //           "submitted"
+  //         ),
+  //       },
+  //       include: [
+  //         {
+  //           model: User,
+  //           as: "user",
+  //           attributes: ["id", "fullname", "username", "email"],
+  //           required: true,
+  //         },
+  //       ],
+  //       attributes: [
+  //         "userId",
+  //         [
+  //           Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.scores"),
+  //           "scores",
+  //         ],
+  //         [
+  //           Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.duration"),
+  //           "duration",
+  //         ],
+  //         [
+  //           Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.startTime"),
+  //           "startTime",
+  //         ],
+  //         [
+  //           Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.endTime"),
+  //           "endTime",
+  //         ],
+  //       ],
+  //       raw: true,
+  //     });
+
+  //     return this.processLeaderboard(exams);
+  //   } catch (error: any) {
+  //     console.error("Error in getAllGroupAllTryoutAllUser:", error);
+  //     throw new Error(`Failed to get leaderboard: ${error.message}`);
+  //   }
+  // }
   async getAllGroupAllTryoutAllUser() {
     try {
       const exams = await Exam.findAll({
         where: {
           active: true,
           [Op.and]: Sequelize.where(
-            Sequelize.literal("data->>'status'"),
+            Sequelize.fn(
+              "JSON_EXTRACT",
+              Sequelize.col("Exam.data"),
+              "$.status"
+            ),
             "=",
             "submitted"
           ),
@@ -71,19 +122,35 @@ export class LeaderboardService {
         attributes: [
           "userId",
           [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.scores"),
+            Sequelize.fn(
+              "JSON_EXTRACT",
+              Sequelize.col("Exam.data"),
+              "$.scores"
+            ),
             "scores",
           ],
           [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.duration"),
+            Sequelize.fn(
+              "JSON_EXTRACT",
+              Sequelize.col("Exam.data"),
+              "$.duration"
+            ),
             "duration",
           ],
           [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.startTime"),
+            Sequelize.fn(
+              "JSON_EXTRACT",
+              Sequelize.col("Exam.data"),
+              "$.startTime"
+            ),
             "startTime",
           ],
           [
-            Sequelize.fn("JSON_EXTRACT", Sequelize.col("data"), "$.endTime"),
+            Sequelize.fn(
+              "JSON_EXTRACT",
+              Sequelize.col("Exam.data"),
+              "$.endTime"
+            ),
             "endTime",
           ],
         ],
