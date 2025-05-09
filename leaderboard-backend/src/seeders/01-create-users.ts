@@ -4,7 +4,7 @@ import { QueryInterface } from "sequelize";
 
 export = {
   up: async (queryInterface: QueryInterface) => {
-    const users = Array.from({ length: 10 }, (_, i) => ({
+    const users = Array.from({ length: 20 }, (_, i) => ({
       id: `user-${i + 1}`,
       fullname: `User ${i + 1}`,
       username: `user${i + 1}`,
