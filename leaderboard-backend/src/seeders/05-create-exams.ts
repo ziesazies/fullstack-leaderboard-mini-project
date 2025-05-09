@@ -1,134 +1,75 @@
 // src/seeders/05-create-exams.ts
 
 import { QueryInterface } from "sequelize";
+import { v4 as uuidv4 } from "uuid";
 
 export = {
   up: async (queryInterface: QueryInterface) => {
-    const now = new Date();
-    const oneHour = 60 * 60 * 1000;
-
-    const exams = [
-      {
-        id: "exam-1",
-        userId: "user-1",
-        data: JSON.stringify({
-          scores: 60,
-          status: "submitted",
-          startTime: now.toISOString(),
-          endTime: new Date(now.getTime() + oneHour).toISOString(),
-          duration: oneHour,
-          tryoutSectionId: "tryout-1",
-          type: "accuracy_test",
-        }),
-        tag: "exam",
-        active: true,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: "exam-2",
-        userId: "user-2",
-        data: JSON.stringify({
-          scores: 75,
-          status: "submitted",
-          startTime: now.toISOString(),
-          endTime: new Date(now.getTime() + oneHour * 0.8).toISOString(),
-          duration: oneHour,
-          tryoutSectionId: "tryout-1",
-          type: "telegram",
-        }),
-        tag: "exam",
-        active: true,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: "exam-3",
-        userId: "user-3",
-        data: JSON.stringify({
-          scores: 80,
-          status: "submitted",
-          startTime: now.toISOString(),
-          endTime: new Date(now.getTime() + oneHour * 0.6).toISOString(),
-          duration: oneHour,
-          tryoutSectionId: "tryout-2",
-          type: "website",
-        }),
-        tag: "exam",
-        active: true,
-        createdAt: now,
-        updatedAt: now,
-      },
-      // Add more exam data for better leaderboard testing
-      {
-        id: "exam-4",
-        userId: "user-4",
-        data: JSON.stringify({
-          scores: 85,
-          status: "submitted",
-          startTime: now.toISOString(),
-          endTime: new Date(now.getTime() + oneHour * 0.5).toISOString(),
-          duration: oneHour,
-          tryoutSectionId: "tryout-2",
-          type: "accuracy_test",
-        }),
-        tag: "exam",
-        active: true,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: "exam-5",
-        userId: "user-5",
-        data: JSON.stringify({
-          scores: 70,
-          status: "submitted",
-          startTime: now.toISOString(),
-          endTime: new Date(now.getTime() + oneHour * 0.9).toISOString(),
-          duration: oneHour,
-          tryoutSectionId: "tryout-1",
-          type: "website",
-        }),
-        tag: "exam",
-        active: true,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: "exam-6",
-        userId: "user-6",
-        data: JSON.stringify({
-          scores: 95,
-          status: "submitted",
-          startTime: now.toISOString(),
-          endTime: new Date(now.getTime() + oneHour * 0.4).toISOString(),
-          duration: oneHour,
-          tryoutSectionId: "tryout-1",
-          type: "telegram",
-        }),
-        tag: "exam",
-        active: true,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: "exam-7",
-        userId: "user-7",
-        data: JSON.stringify({
-          scores: 92,
-          status: "submitted",
-          startTime: now.toISOString(),
-          endTime: new Date(now.getTime() + oneHour * 0.45).toISOString(),
-          duration: oneHour,
-          tryoutSectionId: "tryout-2",
-          type: "website",
-        }),
-        tag: "exam",
-        active: true,
-        createdAt: now,
-        updatedAt: now,
-      },
+    const tryoutSections = [
+      { id: "tryout-1", title: "Tryout Corporate Champion Mentality" },
+      { id: "tryout-2", title: "Tryout Growth Mindset Adaptation" },
+      { id: "tryout-3", title: "Tryout Agile Execution Practice" },
     ];
+
+    const exams = Array.from({ length: 50 }, (_, i) => {
+      const userId = `user-${(i % 20) + 1}`;
+      const tryoutSection = tryoutSections[i % tryoutSections.length];
+      const type = ["accuracy_test", "telegram", "website"][i % 3];
+      const duration = 60 * 60 * 1000; // 1 hour
+
+      const startTime = new Date();
+      const endTime = new Date(
+        startTime.getTime() + duration * (Math.random() * 0.5 + 0.5) // 50% - 100% duration
+      );
+
+      // Fixed scores based on index
+      let scores = 80;
+      if (i < 20) scores = 100;
+      else if (i < 40) scores = 90;
+
+      // Still generate 100 questions (optional for realism)
+      const questions = Array.from({ length: 100 }, () => {
+        const id = uuidv4();
+        const score = Math.random() > 0.5 ? 1 : 0;
+        const answer = ["a", "b", "c", "d"][Math.floor(Math.random() * 4)];
+        const examAnswer = ["a", "b", "c", "d"][Math.floor(Math.random() * 4)];
+        const scrambledLabel = ["a", "b", "c", "d"].map((label) => ({
+          label,
+          examLabel: ["a", "b", "c", "d"][Math.floor(Math.random() * 4)],
+        }));
+
+        return {
+          id,
+          score,
+          answer,
+          imageType: "asset",
+          examAnswer,
+          scrambledLabel,
+          tryoutSections: [{ id: tryoutSection.id }],
+        };
+      });
+
+      return {
+        id: `exam-${i + 1}`,
+        userId,
+        data: JSON.stringify({
+          scores,
+          status: "submitted",
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          duration,
+          platform: type,
+          questions,
+          tryoutSectionId: tryoutSection.id,
+          tryoutSectionTitle: tryoutSection.title,
+          type,
+        }),
+        tag: "exam",
+        active: true,
+        createdAt: startTime,
+        updatedAt: startTime,
+      };
+    });
 
     await queryInterface.bulkInsert("exams", exams, {});
   },
